@@ -29,14 +29,14 @@ from .models import Category, Product
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    # product_count = serializers.SerializerMethodField(method_name='product_counts')
-    product_count = serializers.IntegerField()
+    product_count = serializers.SerializerMethodField(method_name='product_counts')
+    # product_count = serializers.IntegerField()
     class Meta:
         model = Category
         fields = ['id', 'name', 'description', 'product_count']
         
-    # def product_counts(self, obj):
-    #     return Product.objects.select_related('category').filter(category=obj).count()
+    def product_counts(self, obj):
+        return Product.objects.select_related('category').filter(category=obj).count()
         
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -53,3 +53,8 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_price_with_tax(self, obj):
         # Example tax rate (15%)
         return round(obj.price * Decimal('1.15'), 2)
+    
+    def validate_price(self, price):
+        if price < 0:
+            raise serializers.ValidationError("Price cannot be negative.")
+        return price
