@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from decimal import Decimal
-from .models import Category, Product
+from .models import Category, Product, Review
 
 # class CategorySerializer(serializers.Serializer):
 #     id = serializers.IntegerField(read_only=True)
@@ -30,7 +30,7 @@ from .models import Category, Product
 
 class CategorySerializer(serializers.ModelSerializer):
     product_count = serializers.SerializerMethodField(method_name='product_counts')
-    # product_count = serializers.IntegerField()
+    # product_count = serializers.IntegerField(read_only=True)
     class Meta:
         model = Category
         fields = ['id', 'name', 'description', 'product_count']
@@ -42,7 +42,7 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     category = serializers.HyperlinkedRelatedField(
         queryset=Category.objects.all(),
-        view_name='view_specific_category'
+        view_name='category-detail'
     )
     price_with_tax = serializers.SerializerMethodField(method_name='get_price_with_tax')
 
@@ -58,3 +58,22 @@ class ProductSerializer(serializers.ModelSerializer):
         if price < 0:
             raise serializers.ValidationError("Price cannot be negative.")
         return price
+    
+    
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ['id', 'name', 'description', 'date']
+
+    def create(self, validated_data):
+        product_id = self.context.get('product_id')
+
+        if not Product.objects.filter(id=product_id).exists():
+            raise serializers.ValidationError(
+                {'product_id': 'Product with the given ID does not exist.'}
+            )
+
+        return Review.objects.create(
+            product_id=product_id,
+            **validated_data
+        )
