@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     'rest_framework',
+    'django_filters',
     'api',
     'product',
     'users',
@@ -77,6 +78,8 @@ TEMPLATES = [
 
 REST_FRAMEWORK = {
     'COERCE_DECIMAL_TO_STRING': False,
+    # 'PAGE_SIZE': 10,
+    # 'DEFAULT_PAGINATION_CLASS': 'product.paginations.ProductPagination',
 }
 
 WSGI_APPLICATION = "phi_mart.wsgi.application"

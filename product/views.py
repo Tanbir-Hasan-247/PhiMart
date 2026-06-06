@@ -10,6 +10,11 @@ from rest_framework.status import HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_2
 from rest_framework.views import APIView, Http404
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.viewsets import ModelViewSet
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
+from .filters import ProductFilter
+# from rest_framework.pagination import PageNumberPagination
+from .paginations import ProductPagination
 # Create your views here.
 
 # <--function based views-->
@@ -125,6 +130,12 @@ class ProductViewSet(ModelViewSet):
     # queryset = Product.objects.select_related('category').all()
     serializer_class = ProductSerializer
     lookup_field = 'id'
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    # filterset_fields = ['category_id', 'price']
+    filterset_class = ProductFilter
+    pagination_class = ProductPagination
+    search_fields = ['name', 'description', 'category__name']
+    ordering_fields = ['name', 'price', 'created_at']
     
     def get_queryset(self):
         product = Product.objects.select_related('category').all()
