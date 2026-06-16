@@ -26,15 +26,22 @@ class CartItem(models.Model):
     
     
 class Order(models.Model):
-    PENDING = 'PENDING'
-    COMPLETED = 'COMPLETED'
-    DELIVERED = 'DELIVERED'
+    NOT_PAID = 'Not Paid'
+    READY_TO_SHIP = 'Ready to Ship'
+    PENDING = 'Pending'
+    DELIVERED = 'Delivered'
+    CANCELED = 'Canceled'
+    
+    
     STATUS_CHOICES = [
+        (NOT_PAID, 'Not Paid'),
+        (READY_TO_SHIP, 'Ready to Ship'),
         (PENDING, 'Pending'),
-        (COMPLETED, 'Completed'),
         (DELIVERED, 'Delivered'),
+        (CANCELED, 'Canceled'),
     ]
     
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     user = models.ForeignKey('users.User', related_name='orders', on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
@@ -50,6 +57,7 @@ class OrderItem(models.Model):
     product = models.ForeignKey('product.Product', related_name='order_items', on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
     
     def __str__(self):
         return f"{self.quantity} of {self.product.name} in Order {self.order.id}"

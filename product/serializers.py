@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from decimal import Decimal
-from .models import Category, Product, Review
+from .models import Category, Product, ProductImage, Review
+from django.contrib.auth import get_user_model
 
 # class CategorySerializer(serializers.Serializer):
 #     id = serializers.IntegerField(read_only=True)
@@ -38,8 +39,14 @@ class CategorySerializer(serializers.ModelSerializer):
     def product_counts(self, obj):
         return Product.objects.select_related('category').filter(category=obj).count()
         
-
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'product', 'image']
+        read_only_fields = ['product']
+        
 class ProductSerializer(serializers.ModelSerializer):
+    images = ProductImageSerializer(many=True, read_only=True)
     category = serializers.HyperlinkedRelatedField(
         queryset=Category.objects.all(),
         view_name='category-detail'
@@ -48,7 +55,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'description', 'price', 'stock', 'category', 'price_with_tax']
+        fields = ['id', 'name','images', 'description', 'price', 'stock', 'category', 'price_with_tax']
 
     def get_price_with_tax(self, obj):
         # Example tax rate (15%)
@@ -58,12 +65,26 @@ class ProductSerializer(serializers.ModelSerializer):
         if price < 0:
             raise serializers.ValidationError("Price cannot be negative.")
         return price
+
+
+
+class SimpleUserSerializer(serializers.Serializer):
+    name = serializers.SerializerMethodField(method_name='get_current_user')
+    email = serializers.EmailField(read_only=True)
+    class Meta:
+        model = get_user_model()
+        fields = ['id', 'name', 'email']
     
-    
+    def get_current_user(self, obj):
+        return obj.get_full_name()
+
 class ReviewSerializer(serializers.ModelSerializer):
+    user = SimpleUserSerializer(read_only=True)
+    product = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = Review
-        fields = ['id', 'name', 'description', 'date']
+        fields = ['id', 'user', 'product', 'rating', 'comment', 'created_at', 'updated_at']
+        read_only_fields = ['user','product', 'created_at', 'updated_at']
 
     def create(self, validated_data):
         product_id = self.context.get('product_id')

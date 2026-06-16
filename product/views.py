@@ -1,9 +1,10 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
+from rest_framework import permissions
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Category, Product, Review
-from .serializers import ProductSerializer, CategorySerializer, ReviewSerializer
+from .models import Category, Product, ProductImage, Review
+from .serializers import ProductSerializer, CategorySerializer, ReviewSerializer, ProductImageSerializer
 from django.db.models import Count
 from rest_framework import status
 from rest_framework.status import HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_204_NO_CONTENT
@@ -15,6 +16,10 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from .filters import ProductFilter
 # from rest_framework.pagination import PageNumberPagination
 from .paginations import ProductPagination
+from rest_framework.permissions import IsAdminUser
+from api.permissions import IsOwnerOrReadOnly
+from .permissions import IsReviewAuthorOrReadOnly
+
 # Create your views here.
 
 # <--function based views-->
@@ -136,6 +141,13 @@ class ProductViewSet(ModelViewSet):
     pagination_class = ProductPagination
     search_fields = ['name', 'description', 'category__name']
     ordering_fields = ['name', 'price', 'created_at']
+    # permission_classes = [IsAdminUser]
+    permission_classes = [IsOwnerOrReadOnly]
+    
+    # def get_permissions(self):
+    #     if self.request.method == 'GET':
+    #         return [permissions.AllowAny()]
+    #     return [permissions.IsAdminUser()]
     
     def get_queryset(self):
         product = Product.objects.select_related('category').all()
@@ -150,6 +162,17 @@ class ProductViewSet(ModelViewSet):
         if product.stock > 5:
             return Response({'error': 'Cannot delete product with stock greater than 5.'}, status=status.HTTP_400_BAD_REQUEST)
         return super().destroy(request, *args, **kwargs)
+    
+class ProductImageViewSet(ModelViewSet):
+    serializer_class = ProductImageSerializer
+    permission_classes = [IsOwnerOrReadOnly]
+    
+    def get_queryset(self):
+        return ProductImage.objects.select_related('product').filter(product_id=self.kwargs['product_id'])
+    
+    def perform_create(self, serializer):
+        product = get_object_or_404(Product, pk=self.kwargs['product_id'])
+        serializer.save(product=product)
 
 # <--function based view-->
 # @api_view(['GET', 'POST'])
@@ -231,6 +254,10 @@ class CategoryViewSet(ModelViewSet):
 class ReviewViewSet(ModelViewSet):
     # queryset = Review.objects.select_related('product').all()
     serializer_class = ReviewSerializer
+    permission_classes = [IsReviewAuthorOrReadOnly]
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
     
     def get_serializer_context(self):
         print(self.kwargs)
